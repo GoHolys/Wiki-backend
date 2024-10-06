@@ -13,10 +13,12 @@ export class IntroductionController {
   async getIntroduction(
     @Param() params: IntroductionParamDto,
     @Headers('Accept-Language') language,
+    @Headers('x-authentication') auth,
   ): Promise<IntroductionResponseDto> {
     return await this.introductionService.getIntroduction(
       params.articleName,
       language || 'en',
+      auth,
     );
   }
 }

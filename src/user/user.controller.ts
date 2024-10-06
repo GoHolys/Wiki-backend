@@ -5,6 +5,7 @@ import {
   Body,
   Headers,
   UnauthorizedException,
+  InternalServerErrorException,
 } from '@nestjs/common';
 import { UserService } from './user.service';
 import { CreateUserDto } from './dto/create-user.dto';
@@ -14,24 +15,39 @@ export class UserController {
   constructor(private readonly userService: UserService) {}
 
   @Post()
-  createUser(@Body() createUserDto: CreateUserDto): { token: string } {
-    const token = this.userService.createUser(createUserDto);
-    return { token };
+  async createUser(
+    @Body() createUserDto: CreateUserDto,
+  ): Promise<{ token: string }> {
+    try {
+      const token = await this.userService.createUser(createUserDto);
+      return { token };
+    } catch (error) {
+      console.error('Error creating user:', error);
+      throw new InternalServerErrorException('Failed to create user');
+    }
   }
 
   @Get()
-  getUser(@Headers('x-authentication') authToken: string) {
+  async getUser(@Headers('x-authentication') authToken: string) {
     if (!authToken) {
       throw new UnauthorizedException('Authentication token is required');
     }
 
-    const user = this.userService.getUserByToken(authToken);
-    if (!user) {
-      throw new UnauthorizedException('Invalid token');
-    }
+    try {
+      const user = await this.userService.getUserByToken(authToken);
+      if (!user) {
+        throw new UnauthorizedException('Invalid token');
+      }
 
-    return {
-      message: `user: ${user.userName} language: ${user.language}.`,
-    };
+      return {
+        message: `user: ${user.userName} language: ${user.language}.`,
+      };
+    } catch (error) {
+      if (error instanceof UnauthorizedException) {
+        throw error;
+      }
+      console.error('Error getting user:', error);
+      throw new InternalServerErrorException('Failed to retrieve user');
+    }
   }
 }

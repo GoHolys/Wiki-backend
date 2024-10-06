@@ -2,6 +2,7 @@ import { Injectable, NotFoundException } from '@nestjs/common';
 import { WikipediaService } from '../wikipedia/wikipedia.service';
 import { IntroductionResponseDto } from './dto/introduction.dto';
 import { CacheService } from 'src/cache/cache.service';
+import { UserService } from 'src/user/user.service';
 
 interface CachedData {
   introduction: string;
@@ -13,16 +14,19 @@ export class IntroductionService {
   constructor(
     private readonly wikipediaService: WikipediaService,
     private readonly cacheService: CacheService,
+    private readonly userService: UserService,
   ) {}
 
   async getIntroduction(
     articleName: string,
     language: string,
+    auth: string,
   ): Promise<IntroductionResponseDto> {
     try {
+      const userInfo = await this.userService.validateAndGetUser(auth);
       const { introduction, scrapeDate } = await this.getIntroductionData(
         articleName,
-        language,
+        userInfo ? userInfo.language : language,
       );
       return {
         scrapeDate,

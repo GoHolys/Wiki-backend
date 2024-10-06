@@ -1,18 +1,32 @@
-import { Injectable } from '@nestjs/common';
+import { Injectable, UnauthorizedException } from '@nestjs/common';
+import { CacheService } from 'src/cache/cache.service';
 import { v4 as uuidv4 } from 'uuid';
 import { CreateUserDto } from './dto/create-user.dto';
 
 @Injectable()
 export class UserService {
-  private users: Map<string, CreateUserDto> = new Map();
+  constructor(private cacheService: CacheService) {}
 
-  createUser(userData: CreateUserDto): string {
+  async createUser(userData: CreateUserDto): Promise<string> {
     const token = uuidv4();
-    this.users.set(token, userData);
+    await this.cacheService.set(token, JSON.stringify(userData));
     return token;
   }
 
-  getUserByToken(token: string): CreateUserDto | undefined {
-    return this.users.get(token);
+  async getUserByToken(token: string): Promise<CreateUserDto | undefined> {
+    const userData = await this.cacheService.get(token);
+    return userData ? JSON.parse(userData) : undefined;
+  }
+
+  async validateAndGetUser(token: string): Promise<CreateUserDto> {
+    try {
+      const userData = await this.cacheService.get(token);
+      if (userData) {
+        return JSON.parse(userData);
+      }
+    } catch (error) {
+      console.error('Error validating token:', error);
+      throw new UnauthorizedException('Invalid token');
+    }
   }
 }
