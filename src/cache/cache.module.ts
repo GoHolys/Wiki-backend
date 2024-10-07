@@ -8,10 +8,7 @@ import Redis from 'ioredis';
     {
       provide: 'REDIS_CLIENT',
       useFactory: () => {
-        return new Redis({
-          host: '127.0.0.1',
-          port: 6379,
-        });
+        return new Redis(process.env.REDIS_URL);
       },
     },
     CacheService,
